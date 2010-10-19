@@ -30,6 +30,7 @@ There are 3 aspects to the system that require documentation.
   * Rendering templates
 
 Also see:
+
   * [Client JS API docs](http://rdio.github.com/bujagali/js-api)
 
 Writing Templates
