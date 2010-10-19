@@ -1,13 +1,13 @@
 '''Bujagali - a simple template system for JavaScript
 The basic principle is to compile templates on the server-side to JS functions,
-then load them lazilly on the client to render JSON data.
+then load them lazily on the client to render JSON data.
 
 
 There are two ways to include external code :
   #import template // must be at the top
   #extends template // must be at the top, but after any imports
 
-There are four kinds of template tags:
+There are five kinds of template tags:
   {{ js-variable }}
   {% js-code %}
   {# comment #}
