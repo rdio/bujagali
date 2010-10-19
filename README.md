@@ -285,4 +285,7 @@ On the client side:
         // I suggest you inject your new markup in the DOM somewhere
     });
 
+`context` is expected to be a JS object, so unserialize whatever you did in the
+first situation.
+
 That should be all you need to know to get going.
