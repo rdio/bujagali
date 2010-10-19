@@ -32,6 +32,7 @@ There are 3 aspects to the system that require documentation.
 Also see:
 
   * [Client JS API docs](http://rdio.github.com/bujagali/js-api)
+  * [Blog post on how Bujagali works](http://justin.harmonize.fm/index.php/2010/10/bujagali-incredibly-fast-javascript-templating/)
 
 Writing Templates
 -----------------
