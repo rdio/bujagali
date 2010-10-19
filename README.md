@@ -52,7 +52,7 @@ the current template (see below for an example).
 
 ###Regular Tags
 
-`{{ <data> }}` 
+#### `{{ <data> }}` 
 Output whatever is returned, usually a variable or the result of some operation.
 
 Example:
@@ -61,7 +61,7 @@ Example:
     <h2>Address: {{ self.formatAddress(ctx.myName) }}</h2>
     <h3>Birth year: {{ 2010 - ctx.age }}</h3>
 
-`{% <javascript> %}`
+#### `{% <javascript> %}`
 Execute the enclosed JavaScript, don't alter the markup in any way.
 
 Example:
@@ -72,7 +72,7 @@ Example:
         {% });
     } %}
 
-`{$ <block name> $}`
+#### `{$ <block name> $}`
 This is one part of how inheritance is done. This tag will define a block for a
 subtemplate to override. This allows you to define where markup from a template
 that extends the current template will be placed. This will call a function of
@@ -108,7 +108,7 @@ Subtemplate
         Hello World!
     } %}
 
-`{= <macro name>(<macro arguments>) <macro content> =}`
+#### `{= <macro name>(<macro arguments>) <macro content> =}`
 This allows you to extend the template system and reuse pieces of templates in
 other places.
 
@@ -138,7 +138,7 @@ Then in some other template:
         {% } %}
     </div>
 
-`{# <comment> #}`
+#### `{# <comment> #}`
 Everything between these tags will be ignored and will not end up in the
 compiled template.
 
