@@ -207,5 +207,5 @@ would have modified the wrong context.
 I hope that's not too confusing.
 
 ###Provided functions
-See the [API docs] (http://rdio.github.com/bujagali/js-api) for what functions are available to you from your templates
+See the [API docs](http://rdio.github.com/bujagali/js-api) for what functions are available to you from your templates
 and how to extend that set.
