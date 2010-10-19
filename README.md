@@ -144,7 +144,7 @@ compiled template.
 
 ###Advanced Concepts
 
-`self`
+#### `self`
 `self` refers to the current instance of the template being rendered. You almost
 always want to call macros and other functions provided by the templating system
 with `self` (for the exceptions to this rule, see `this`). For instance, `escape`
@@ -159,7 +159,7 @@ you `#import` them first)
 
     <div class="header">{{ self.render_header(ctx) }}</div>
 
-`emit`
+#### `emit`
 `emit` is a function that is available to all templates. It is what is called
 by the moustache tag (`{{ }}`). This can be useful for making some markup less
 confusing.
@@ -178,7 +178,7 @@ This example is a little contrived as you could also do
 
 But it does come in useful sometimes, I swear.
 
-`this`
+#### `this`
 `this` is confusing, I'm sorry. Sometimes you don't want to `emit` markup into
 your own context, sometimes you want to `emit` it into your caller's context.
 This happens in macros, for instance, where the markup of the macro itself
