@@ -10,8 +10,11 @@ Overview
 Bujagali is a flexible template system that is a thin layer on top of
 JavaScript which makes it easier to write HTML (or any templated text)
 using JavaScript. The syntax is modeled off of the Django templating system,
-but the behavior is substantially different. It is not especially designer-
-friendly.
+but the behavior is substantially different.
+
+Bujagali is really fast, really flexible, and really hard to use. It's written
+for people who know JavaScript well and is probably completely unusable by
+most designers.
 
 The basic principle is to compile templates on the server-side to JS functions,
 then load them lazily on the client to render JSON data.
@@ -21,9 +24,10 @@ environments. It depends on the excellent underscore library, so you can
 reference `_` from anywhere in your templates.
 
 There are 3 aspects to the system that require documentation.
-    * Writing templates
-    * Converting templates to JavaScript
-    * Rendering templates
+
+  * Writing templates
+  * Converting templates to JavaScript
+  * Rendering templates
 
 
 Writing Templates
@@ -207,5 +211,78 @@ would have modified the wrong context.
 I hope that's not too confusing.
 
 ###Provided functions
-See the [API docs](http://rdio.github.com/bujagali/js-api) for what functions are available to you from your templates
-and how to extend that set.
+See the [API docs](http://rdio.github.com/bujagali/js-api) for what functions
+are available to you from your templates and how to extend that set.
+
+
+Converting Templates to JavaScript
+----------------------------------
+
+Once you have written a template, converting it to javascript is pretty
+straightforward. The scripts to generate the javascript are all in python,
+so in python you would write somthing like this:
+
+    root = "/User/justin/awesomeTemplates"
+    t = Bujagali('/things.bg.html', root)
+    js = t.generate()
+
+Now `js` will contain the javascript that should be returned to the client.
+
+Rdio has a django view that generates templates on the fly for ease of
+development (they're statically generated for production).
+
+The view:
+
+    def build(request, template):
+        root = os.path.join(settings.RDIO_ROOT, 'web')
+        bg = Bujagali(template, root)
+
+        response = HttpResponse(bg.generate())
+        response['Content-Type'] = 'text/javascript; charset=utf-8'
+        # expires in a year
+        response['Cache-Control'] = 'public; max-age=31536000'
+
+        return response
+
+The route:
+
+    urlpatterns = patterns('rdio.web.bujagali',
+        url(r'(?P<template>.+\.bg\.html).*\.js', 'template.build'))
+
+
+Rendering Templates
+-------------------
+
+You need to include both underscore.js and bujagali.js to render templates.
+
+    <script src="client/underscore.js" type="text/javascript"></script>
+    <script src="client/bujagali.js" type="text/javascript"></script>
+
+Rendering a template requires two things: a template name and a version of the
+template. The server provides the version with the data used to render the
+template.
+
+On the server side:
+
+    from bujagali import create_context
+
+    root = /somewhere/on/my/filesystem
+    data = {
+        'name': 'Rdio',
+        'project': 'Bujagali',
+    }
+    template = 'projectDetails.bg.html'
+
+    context = create_context(template, data, root)
+
+`context` is a dict, so from there, you need to serialize `context` and get
+it to the client in whatever way you see fit. I suggest JSON.
+
+On the client side:
+
+    Bujagali.render('projectDetails.bg.html', context, function(data, markup) {
+        // this will be called after the template as been evaluated.
+        // I suggest you inject your new markup in the DOM somewhere
+    });
+
+That should be all you need to know to get going.
