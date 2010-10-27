@@ -20,7 +20,6 @@ module.exports = http.createServer(function(request, response) {
             eval(input);
         }
         catch (e) {
-            console.timeEnd('bg_render_time');
             var body = 'Error occurred while evaluating template: ' +
                 e.stack;
             response.writeHead(500, {

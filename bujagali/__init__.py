@@ -229,6 +229,15 @@ class Bujagali(object):
       """ % { 'name': self.template, 'function': compiled, 'hash': self.version }
 
   def get_html(self, context, port):
+    """
+    Given a context, returns html. Pass in the port that the bujagali_server.js
+    is running on.
+
+    Context can be a dict or a JSON string.
+    """
+    if type(context) == dict:
+      context = jsonify(context)
+
     input = ["""
     _ = require('%s')._;
     Bujagali = require('%s');
@@ -256,7 +265,7 @@ class Bujagali(object):
       response.end(markup, 'utf8');
     };
     m.exec();""" % (
-      self.generate(), self.template, jsonify(context), self.root))
+      self.generate(), self.template, context, self.root))
     input = '\n'.join(input)
     import httplib, codecs
     c = httplib.HTTPConnection('localhost:%d' % port)
@@ -284,7 +293,7 @@ def create_context(template, data, root):
 def get_template_deps(name, root):
   global _template_versions
   if not _template_versions.has_key(name):
-    _template_versions[name] = Bujagali(name, root).dependencies
+    return Bujagali(name, root).dependencies
   return _template_versions[name]
 
 def set_template_deps(deps):

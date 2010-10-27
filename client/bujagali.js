@@ -1,5 +1,5 @@
 /*jslint evil:true */
-/*globals document load fs $ log exports _ */
+/*globals document load fs $ log exports _ require */
 
 /**
  * Bujagali
@@ -15,7 +15,7 @@ var Bujagali = (function() {
       function p() {}
       p.prototype = prototype;
       return new p();
-    }
+    };
   }
 
   var headEl = (typeof document != 'undefined') ?
@@ -76,6 +76,8 @@ var Bujagali = (function() {
     urlize: function(s, dontReplace) {
       var matches = s.match(urlMatcher);
       if (!matches) { return s; }
+      var output = '';
+      var end;
       _.each(matches, function(link) {
         var replace = true;
         var prefix = 'http://';
@@ -94,12 +96,16 @@ var Bujagali = (function() {
           if (link.slice(0,4) == 'http') {
             prefix = '';
           }
-          s = s.replace(link, [
+          end = s.indexOf(link);
+          output += s.slice(0, end);
+          output += [
             '<a target="_blank" href="', prefix, link, '">', link, '</a>'
-          ].join(''));
+          ].join('');
+          s = s.slice(end + link.length);
         }
       });
-      return s;
+      output += s; // get the tail
+      return output;
     },
 
     /**
@@ -115,6 +121,9 @@ var Bujagali = (function() {
       if (!string) { return 0; }
 
       var d = string.match(isoRe);
+      if (!d) {
+        return null;
+      }
       var offset = 0;
       var date = new Date(d[1], 0, 1);
 
@@ -142,10 +151,13 @@ var Bujagali = (function() {
      * Take an iso date string and returns a JavaScript date object representing
      * the same date and time.
      **/
-    date: function(isoDate) {
+    date: function(isoDate, ignoreTimezone) {
       if (!isoDate) { return isoDate; }
 
-      var utc = utils.parseISODate(isoDate, true);
+      var utc = utils.parseISODate(isoDate, ignoreTimezone);
+      if (!utc) {
+        return null;
+      }
       var d = new Date();
       d.setTime(utc);
       return d;
