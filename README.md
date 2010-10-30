@@ -114,7 +114,7 @@ Subtemplate
     {% }
     function content() { %}
         Hello World!
-    } %}
+    {% } %}
 
 #### `{= <macro name>(<macro arguments>) <macro content> =}`
 This allows you to extend the template system and reuse pieces of templates in
