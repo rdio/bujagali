@@ -34,7 +34,7 @@ var Bujagali = (function() {
   var isoRe = /([0-9]{4})(-([0-9]{2})(-([0-9]{2})(T([0-9]{2}):([0-9]{2})(:([0-9]{2})(\.([0-9]+))?)?(Z|(([\-+])([0-9]{2}):([0-9]{2})))?)?)?)?/i;
 
   /* urlize regular expression */
-  var urlMatcher = /[0-9A-z]\S+(\.com|\.org|\.net|\.edu|\.mil|\.gov|\.cc|\.me|\.cn|\.ly|\.io|\.fm|\.co|\.uk|\.ca)(\/[0-9A-z\-_\.\?=&#\/;%:+(]+[0-9A-z\/])?/gi;
+  var urlMatcher = /[0-9A-z]\S+(\.com|\.org|\.net|\.edu|\.mil|\.gov|\.cc|\.me|\.cn|\.ly|\.io|\.fm|\.co|\.uk|\.ca|\.be)(\/[0-9A-z\-_\.\?=&#\/;%:+(]+[0-9A-z\/])?/gi;
 
   var newLineRe = /\n/g;
 
@@ -99,7 +99,9 @@ var Bujagali = (function() {
           end = s.indexOf(link);
           output += s.slice(0, end);
           output += [
-            '<a target="_blank" href="', prefix, link, '">', link, '</a>'
+            '<a target="_blank" title = "', link, '" href="',
+            prefix, link, '">',
+            utils.truncate(link, 80), '</a>'
           ].join('');
           s = s.slice(end + link.length);
         }
@@ -178,6 +180,19 @@ var Bujagali = (function() {
         s = s.slice(0, length - 1) + "&hellip;";
       }
       return s;
+    },
+
+    /**
+     * Bujagali.Utils.capitalize(s) -> string
+     * - s (string): The string to capitalize
+     *
+     * Capitalizes the first letter of every word in the
+     * string and returns the result.
+     **/
+    capitalize: function(s) {
+      return _.map(s.split(' '), function(sub) {
+        return sub.charAt(0).toUpperCase() + sub.slice(1);
+      }).join(' ');
     },
 
     /**

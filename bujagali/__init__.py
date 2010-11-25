@@ -283,14 +283,14 @@ class Bujagali(object):
 
     return output
 
-def create_context(template, data, root):
+def create_context(template, data, root='./'):
   return {
     'data': data,
     'template': template,
     'deps': get_template_deps(template, root)
   }
 
-def get_template_deps(name, root):
+def get_template_deps(name, root='./'):
   global _template_versions
   if not _template_versions.has_key(name):
     return Bujagali(name, root).dependencies
