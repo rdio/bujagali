@@ -3,7 +3,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
 <head>
   <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-  <title>  v API documentation | Bujagali.Utils.escape</title>
+  <title>  v API documentation | Bujagali.Utils.capitalize</title>
   <meta name="generator" content="PDoc" />
   
   <script charset="utf-8" src="../../../javascripts/pdoc/prototype.js" type="text/javascript"></script>
@@ -39,11 +39,11 @@
       
       <div class="sidebar-pane scrollable" id="menu_pane">
         <ul class="menu-items" id="api_menu"><li><div class="menu-item"><a class="namespace current-parent" href="../../../Bujagali/index.html" title="Bujagali (namespace)">Bujagali</a></div><ul><li><div class="menu-item"><a class="class" href="../../../Bujagali/Monad/index.html" title="Bujagali.Monad (class)">Bujagali.Monad</a></div></li>
-<li><div class="menu-item"><a class="namespace current-parent" href="../../../Bujagali/Utils/index.html" title="Bujagali.Utils (namespace)">Bujagali.Utils</a></div><ul><li><div class="menu-item"><a class="class-method" href="../../../Bujagali/Utils/capitalize/index.html" title="Bujagali.Utils.capitalize (class method)">capitalize</a></div></li>
+<li><div class="menu-item"><a class="namespace current-parent" href="../../../Bujagali/Utils/index.html" title="Bujagali.Utils (namespace)">Bujagali.Utils</a></div><ul><li><div class="menu-item"><a class="class-method current" href="../../../Bujagali/Utils/capitalize/index.html" title="Bujagali.Utils.capitalize (class method)">capitalize</a></div></li>
 <li><div class="menu-item"><a class="class-method" href="../../../Bujagali/Utils/date/index.html" title="Bujagali.Utils.date (class method)">date</a></div></li>
 <li><div class="menu-item"><a class="class-method" href="../../../Bujagali/Utils/deEscape/index.html" title="Bujagali.Utils.deEscape (class method)">deEscape</a></div></li>
 <li><div class="menu-item"><a class="class-method" href="../../../Bujagali/Utils/enrich/index.html" title="Bujagali.Utils.enrich (class method)">enrich</a></div></li>
-<li><div class="menu-item"><a class="class-method current" href="../../../Bujagali/Utils/escape/index.html" title="Bujagali.Utils.escape (class method)">escape</a></div></li>
+<li><div class="menu-item"><a class="class-method" href="../../../Bujagali/Utils/escape/index.html" title="Bujagali.Utils.escape (class method)">escape</a></div></li>
 <li><div class="menu-item"><a class="class-method" href="../../../Bujagali/Utils/randomID/index.html" title="Bujagali.Utils.randomID (class method)">randomID</a></div></li>
 <li><div class="menu-item"><a class="class-method" href="../../../Bujagali/Utils/truncate/index.html" title="Bujagali.Utils.truncate (class method)">truncate</a></div></li>
 <li><div class="menu-item"><a class="class-method" href="../../../Bujagali/Utils/urlize/index.html" title="Bujagali.Utils.urlize (class method)">urlize</a></div></li></ul></li></ul></li></ul><!--- #api_menu =-->
@@ -70,14 +70,14 @@
   
     <li>&rarr; <a href="../../../Bujagali/Utils/index.html" title="Bujagali.Utils (namespace)">Utils</a></li>
   
-    <li>&rarr; <a href="../../../Bujagali/Utils/escape/index.html" title="Bujagali.Utils.escape (class method)">escape</a></li>
+    <li>&rarr; <a href="../../../Bujagali/Utils/capitalize/index.html" title="Bujagali.Utils.capitalize (class method)">capitalize</a></li>
   
 </ul>
 
 
 
 <h2 class="page-title">
-  <span class="type">class method</span> Bujagali.Utils.escape
+  <span class="type">class method</span> Bujagali.Utils.capitalize
 </h2>
 
 
@@ -89,16 +89,16 @@
   <div class="section-content">
     <div class="method-description">
       
-        <pre class="syntax"><code class="ebnf">Bujagali.Utils.escape(str) &rarr; string</code></pre>
+        <pre class="syntax"><code class="ebnf">Bujagali.Utils.capitalize(s) &rarr; string</code></pre>
 
   <ul class="argument-list">
     
       <li>
-        <code class="argument-name">str</code>
+        <code class="argument-name">s</code>
         
-          <span class="argument-types">(<code>String</code>)</span>
+          <span class="argument-types">(<code>string</code>)</span>
         
-         &ndash; The string to escape.
+         &ndash; The string to capitalize
 
       </li>
     
@@ -106,10 +106,8 @@
 
       
 
-      <p>Takes the input string and replaces potentially dangerous text with
-HTML entitites. For instance "<script>" becomes "&lt;script&gt;"</p>
-
-<p>Returns the escaped string.</p>
+      <p>Capitalizes the first letter of every word in the
+string and returns the result.</p>
 
       
       

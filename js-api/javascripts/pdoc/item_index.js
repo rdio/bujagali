@@ -10,6 +10,7 @@ PDoc.elements = {
 'Bujagali.postProcessors': { 'name': 'Bujagali.postProcessors', 'type': 'class property', 'path': 'Bujagali/postProcessors/index.html' },
 'Bujagali.Utils.deEscape': { 'name': 'Bujagali.Utils.deEscape', 'type': 'class method', 'path': 'Bujagali/Utils/deEscape/index.html' },
 'new Bujagali.Monad': { 'name': 'new Bujagali.Monad', 'type': 'constructor', 'path': 'Bujagali/Monad/new/index.html' },
+'Bujagali.Utils.capitalize': { 'name': 'Bujagali.Utils.capitalize', 'type': 'class method', 'path': 'Bujagali/Utils/capitalize/index.html' },
 'Bujagali.Utils.urlize': { 'name': 'Bujagali.Utils.urlize', 'type': 'class method', 'path': 'Bujagali/Utils/urlize/index.html' },
 'Bujagali.Utils.enrich': { 'name': 'Bujagali.Utils.enrich', 'type': 'class method', 'path': 'Bujagali/Utils/enrich/index.html' },
 'Bujagali.Monad#load': { 'name': 'Bujagali.Monad#load', 'type': 'instance method', 'path': 'Bujagali/Monad/prototype/load/index.html' },
