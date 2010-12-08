@@ -84,7 +84,7 @@ class FunctionBuilder(object):
           var %(monad)s = new self.ctor('%(name)s', self.context, self.root);
           %(monad)s.load();
           %(wrap)s
-          %(monad)s.render(self.context, function() {
+          %(monad)s.renderOnce(self.context, function() {
           """ % { 'name': name, 'wrap': self.frontWrap, 'monad': monad }
         self.backWrap = " }); " + self.backWrap
       elif line.startswith('#extends'):
@@ -129,6 +129,7 @@ class FunctionBuilder(object):
         self.add_js_code("""
           Bujagali.helpers['%s'] = function%s {
             var __bujagali_html = [];
+            var self = this;
             function emit(more) {
               Array.prototype.splice.apply(
                 __bujagali_html,

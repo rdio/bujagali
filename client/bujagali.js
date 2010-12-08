@@ -398,6 +398,20 @@ var Bujagali = (function() {
       }
     },
 
+    renderOnce: function(context, callback, args) {
+      var template = module.fxns[this.name];
+      this.version = (context.deps && context.deps[this.name]) || this.version;
+
+      if (template && (template.version == this.version) && template.rendered) {
+        // we've rendered this already, just call back with the current data
+        callback(context.data, null, args);
+      }
+      else {
+        // we haven't rendered once, do the normal render thing
+        this.render(context, callback, args);
+      }
+    },
+
     /**
      * Bujagali.Monad#exec() -> undefined
      *
@@ -417,6 +431,7 @@ var Bujagali = (function() {
       this.callback(this.context.data, this.markup.join(''), this.args);
       if(post) { post(); }
       this.doAfterRender();
+      module.fxns[this.name].rendered = true;
     },
 
     doAfterRender: function() {
