@@ -155,8 +155,8 @@ compiled template.
 #### `self`
 `self` refers to the current instance of the template being rendered. You almost
 always want to call macros and other functions provided by the templating system
-with `self` (for the exceptions to this rule, see `this`). For instance, `escape`
-is a function available to all templates in Bujagali.
+with `self`. For instance, `escape` is a function available to all templates in
+Bujagali.
 
     <h1>Name: {{ self.escape(ctx.name) }}</h1>
 
@@ -185,34 +185,6 @@ This example is a little contrived as you could also do
     The car is{{ ctx.sex == 'female' ? ' hers.' : ' his.' }}
 
 But it does come in useful sometimes, I swear.
-
-#### `this`
-`this` is confusing, I'm sorry. Sometimes you don't want to `emit` markup into
-your own context, sometimes you want to `emit` it into your caller's context.
-This happens in macros, for instance, where the markup of the macro itself
-doesn't matter and you want to alter the markup of the caller. In this case,
-`self` is useless as it refers to your own template. I think of `self` as the
-template I'm looking at and `this` as the context I'm modifying.
-
-For example, in a macro calling another macro:
-
-    {= macro1()
-        <p>A very long story.</p>
-    =}
-
-    {= macro2(title)
-        <h1>{{ title }}</h1>
-        {{ this.macro1() }}
-    =}
-
-    {# off in another file... #}
-    {{ self.macro2(); }}
-
-In this example, `macro1` ends up modifying the `self` that calls `macro2`
-because `macro2` called `macro1` using `this`. If it had used `self`, it
-would have modified the wrong context.
-
-I hope that's not too confusing.
 
 ###Provided functions
 See the [API docs](http://rdio.github.com/bujagali/js-api) for what functions
