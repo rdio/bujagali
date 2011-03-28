@@ -1,4 +1,5 @@
-//     (c) 2010 Jeremy Ashkenas, DocumentCloud Inc.
+//     Underscore.js 1.1.4
+//     (c) 2011 Jeremy Ashkenas, DocumentCloud Inc.
 //     Underscore is freely distributable under the MIT license.
 //     Portions of Underscore are inspired or borrowed from Prototype,
 //     Oliver Steele's Functional, and John Resig's Micro-Templating.
@@ -16,18 +17,17 @@
   // Save the previous value of the `_` variable.
   var previousUnderscore = root._;
 
-  // Establish the object that gets thrown to break out of a loop iteration.
-  var breaker = typeof StopIteration !== 'undefined' ? StopIteration : '__break__';
+  // Establish the object that gets returned to break out of a loop iteration.
+  var breaker = {};
 
   // Save bytes in the minified (but not gzipped) version:
   var ArrayProto = Array.prototype, ObjProto = Object.prototype;
 
   // Create quick reference variables for speed access to core prototypes.
-  var slice                 = ArrayProto.slice,
-      unshift               = ArrayProto.unshift,
-      toString              = ObjProto.toString,
-      hasOwnProperty        = ObjProto.hasOwnProperty,
-      propertyIsEnumerable  = ObjProto.propertyIsEnumerable;
+  var slice            = ArrayProto.slice,
+      unshift          = ArrayProto.unshift,
+      toString         = ObjProto.toString,
+      hasOwnProperty   = ObjProto.hasOwnProperty;
 
   // All **ECMAScript 5** native function implementations that we hope to use
   // are declared here.
@@ -47,14 +47,18 @@
   // Create a safe reference to the Underscore object for use below.
   var _ = function(obj) { return new wrapper(obj); };
 
-  // Export the Underscore object for **CommonJS**.
-  if (typeof exports !== 'undefined') exports._ = _;
-
-  // Export Underscore to the global scope.
-  root._ = _;
+  // Export the Underscore object for **CommonJS**, with backwards-compatibility
+  // for the old `require()` API. If we're not in CommonJS, add `_` to the
+  // global object.
+  if (typeof module !== 'undefined' && module.exports) {
+    module.exports = _;
+    _._ = _;
+  } else {
+    root._ = _;
+  }
 
   // Current version.
-  _.VERSION = '1.1.2';
+  _.VERSION = '1.1.4';
 
   // Collection Functions
   // --------------------
@@ -63,27 +67,29 @@
   // Handles objects implementing `forEach`, arrays, and raw objects.
   // Delegates to **ECMAScript 5**'s native `forEach` if available.
   var each = _.each = _.forEach = function(obj, iterator, context) {
-    try {
-      if (nativeForEach && obj.forEach === nativeForEach) {
-        obj.forEach(iterator, context);
-      } else if (_.isNumber(obj.length)) {
-        for (var i = 0, l = obj.length; i < l; i++) iterator.call(context, obj[i], i, obj);
-      } else {
-        for (var key in obj) {
-          if (hasOwnProperty.call(obj, key)) iterator.call(context, obj[key], key, obj);
+    var value;
+    if (obj == null) return;
+    if (nativeForEach && obj.forEach === nativeForEach) {
+      obj.forEach(iterator, context);
+    } else if (_.isNumber(obj.length)) {
+      for (var i = 0, l = obj.length; i < l; i++) {
+        if (iterator.call(context, obj[i], i, obj) === breaker) return;
+      }
+    } else {
+      for (var key in obj) {
+        if (hasOwnProperty.call(obj, key)) {
+          if (iterator.call(context, obj[key], key, obj) === breaker) return;
         }
       }
-    } catch(e) {
-      if (e != breaker) throw e;
     }
-    return obj;
   };
 
   // Return the results of applying the iterator to each element.
   // Delegates to **ECMAScript 5**'s native `map` if available.
   _.map = function(obj, iterator, context) {
-    if (nativeMap && obj.map === nativeMap) return obj.map(iterator, context);
     var results = [];
+    if (obj == null) return results;
+    if (nativeMap && obj.map === nativeMap) return obj.map(iterator, context);
     each(obj, function(value, index, list) {
       results[results.length] = iterator.call(context, value, index, list);
     });
@@ -93,22 +99,31 @@
   // **Reduce** builds up a single result from a list of values, aka `inject`,
   // or `foldl`. Delegates to **ECMAScript 5**'s native `reduce` if available.
   _.reduce = _.foldl = _.inject = function(obj, iterator, memo, context) {
+    var initial = memo !== void 0;
+    if (obj == null) obj = [];
     if (nativeReduce && obj.reduce === nativeReduce) {
       if (context) iterator = _.bind(iterator, context);
-      return obj.reduce(iterator, memo);
+      return initial ? obj.reduce(iterator, memo) : obj.reduce(iterator);
     }
     each(obj, function(value, index, list) {
-      memo = iterator.call(context, memo, value, index, list);
+      if (!initial && index === 0) {
+        memo = value;
+        initial = true;
+      } else {
+        memo = iterator.call(context, memo, value, index, list);
+      }
     });
+    if (!initial) throw new TypeError("Reduce of empty array with no initial value");
     return memo;
   };
 
   // The right-associative version of reduce, also known as `foldr`.
   // Delegates to **ECMAScript 5**'s native `reduceRight` if available.
   _.reduceRight = _.foldr = function(obj, iterator, memo, context) {
+    if (obj == null) obj = [];
     if (nativeReduceRight && obj.reduceRight === nativeReduceRight) {
       if (context) iterator = _.bind(iterator, context);
-      return obj.reduceRight(iterator, memo);
+      return memo !== void 0 ? obj.reduceRight(iterator, memo) : obj.reduceRight(iterator);
     }
     var reversed = (_.isArray(obj) ? obj.slice() : _.toArray(obj)).reverse();
     return _.reduce(reversed, iterator, memo, context);
@@ -117,10 +132,10 @@
   // Return the first value which passes a truth test. Aliased as `detect`.
   _.find = _.detect = function(obj, iterator, context) {
     var result;
-    each(obj, function(value, index, list) {
+    any(obj, function(value, index, list) {
       if (iterator.call(context, value, index, list)) {
         result = value;
-        _.breakLoop();
+        return true;
       }
     });
     return result;
@@ -130,8 +145,9 @@
   // Delegates to **ECMAScript 5**'s native `filter` if available.
   // Aliased as `select`.
   _.filter = _.select = function(obj, iterator, context) {
-    if (nativeFilter && obj.filter === nativeFilter) return obj.filter(iterator, context);
     var results = [];
+    if (obj == null) return results;
+    if (nativeFilter && obj.filter === nativeFilter) return obj.filter(iterator, context);
     each(obj, function(value, index, list) {
       if (iterator.call(context, value, index, list)) results[results.length] = value;
     });
@@ -141,6 +157,7 @@
   // Return all the elements for which a truth test fails.
   _.reject = function(obj, iterator, context) {
     var results = [];
+    if (obj == null) return results;
     each(obj, function(value, index, list) {
       if (!iterator.call(context, value, index, list)) results[results.length] = value;
     });
@@ -152,10 +169,11 @@
   // Aliased as `all`.
   _.every = _.all = function(obj, iterator, context) {
     iterator = iterator || _.identity;
-    if (nativeEvery && obj.every === nativeEvery) return obj.every(iterator, context);
     var result = true;
+    if (obj == null) return result;
+    if (nativeEvery && obj.every === nativeEvery) return obj.every(iterator, context);
     each(obj, function(value, index, list) {
-      if (!(result = result && iterator.call(context, value, index, list))) _.breakLoop();
+      if (!(result = result && iterator.call(context, value, index, list))) return breaker;
     });
     return result;
   };
@@ -163,12 +181,13 @@
   // Determine if at least one element in the object matches a truth test.
   // Delegates to **ECMAScript 5**'s native `some` if available.
   // Aliased as `any`.
-  _.some = _.any = function(obj, iterator, context) {
+  var any = _.some = _.any = function(obj, iterator, context) {
     iterator = iterator || _.identity;
-    if (nativeSome && obj.some === nativeSome) return obj.some(iterator, context);
     var result = false;
+    if (obj == null) return result;
+    if (nativeSome && obj.some === nativeSome) return obj.some(iterator, context);
     each(obj, function(value, index, list) {
-      if (result = iterator.call(context, value, index, list)) _.breakLoop();
+      if (result = iterator.call(context, value, index, list)) return breaker;
     });
     return result;
   };
@@ -176,10 +195,11 @@
   // Determine if a given value is included in the array or object using `===`.
   // Aliased as `contains`.
   _.include = _.contains = function(obj, target) {
-    if (nativeIndexOf && obj.indexOf === nativeIndexOf) return obj.indexOf(target) != -1;
     var found = false;
-    each(obj, function(value) {
-      if (found = value === target) _.breakLoop();
+    if (obj == null) return found;
+    if (nativeIndexOf && obj.indexOf === nativeIndexOf) return obj.indexOf(target) != -1;
+    any(obj, function(value) {
+      if (found = value === target) return true;
     });
     return found;
   };
@@ -333,10 +353,17 @@
   };
 
   // If the browser doesn't supply us with indexOf (I'm looking at you, **MSIE**),
-  // we need this function. Return the position of the first occurence of an
+  // we need this function. Return the position of the first occurrence of an
   // item in an array, or -1 if the item is not included in the array.
   // Delegates to **ECMAScript 5**'s native `indexOf` if available.
-  _.indexOf = function(array, item) {
+  // If the array is large and already in sort order, pass `true`
+  // for **isSorted** to use binary search.
+  _.indexOf = function(array, item, isSorted) {
+    if (array == null) return -1;
+    if (isSorted) {
+      var i = _.sortedIndex(array, item);
+      return array[i] === item ? i : -1;
+    }
     if (nativeIndexOf && array.indexOf === nativeIndexOf) return array.indexOf(item);
     for (var i = 0, l = array.length; i < l; i++) if (array[i] === item) return i;
     return -1;
@@ -345,6 +372,7 @@
 
   // Delegates to **ECMAScript 5**'s native `lastIndexOf` if available.
   _.lastIndexOf = function(array, item) {
+    if (array == null) return -1;
     if (nativeLastIndexOf && array.lastIndexOf === nativeLastIndexOf) return array.lastIndexOf(item);
     var i = array.length;
     while (i--) if (array[i] === item) return i;
@@ -414,13 +442,40 @@
     return _.delay.apply(_, [func, 1].concat(slice.call(arguments, 1)));
   };
 
+  // Internal function used to implement `_.throttle` and `_.debounce`.
+  var limit = function(func, wait, debounce) {
+    var timeout;
+    return function() {
+      var context = this, args = arguments;
+      var throttler = function() {
+        timeout = null;
+        func.apply(context, args);
+      };
+      if (debounce) clearTimeout(timeout);
+      if (debounce || !timeout) timeout = setTimeout(throttler, wait);
+    };
+  };
+
+  // Returns a function, that, when invoked, will only be triggered at most once
+  // during a given window of time.
+  _.throttle = function(func, wait) {
+    return limit(func, wait, false);
+  };
+
+  // Returns a function, that, as long as it continues to be invoked, will not
+  // be triggered. The function will be called after it stops being called for
+  // N milliseconds.
+  _.debounce = function(func, wait) {
+    return limit(func, wait, true);
+  };
+
   // Returns the first function passed as an argument to the second,
   // allowing you to adjust arguments, run code before and after, and
   // conditionally execute the original function.
   _.wrap = function(func, wrapper) {
     return function() {
       var args = [func].concat(slice.call(arguments));
-      return wrapper.apply(wrapper, args);
+      return wrapper.apply(this, args);
     };
   };
 
@@ -492,6 +547,9 @@
     if (a == b) return true;
     // One is falsy and the other truthy.
     if ((!a && b) || (a && !b)) return false;
+    // Unwrap any wrapped objects.
+    if (a._chain) a = a._wrapped;
+    if (b._chain) b = b._wrapped;
     // One of them implements an isEqual()?
     if (a.isEqual) return a.isEqual(b);
     // Check dates' integer values.
@@ -532,12 +590,12 @@
   // Is a given value an array?
   // Delegates to ECMA5's native Array.isArray
   _.isArray = nativeIsArray || function(obj) {
-    return !!(obj && obj.concat && obj.unshift && !obj.callee);
+    return toString.call(obj) === '[object Array]';
   };
 
   // Is a given variable an arguments object?
   _.isArguments = function(obj) {
-    return !!(obj && obj.callee);
+    return !!(obj && hasOwnProperty.call(obj, 'callee'));
   };
 
   // Is a given value a function?
@@ -552,7 +610,13 @@
 
   // Is a given value a number?
   _.isNumber = function(obj) {
-    return (obj === +obj) || (toString.call(obj) === '[object Number]');
+    return !!(obj === 0 || (obj && obj.toExponential && obj.toFixed));
+  };
+
+  // Is the given value `NaN`? `NaN` happens to be the only value in JavaScript
+  // that does not equal itself.
+  _.isNaN = function(obj) {
+    return obj !== obj;
   };
 
   // Is a given value a boolean?
@@ -570,12 +634,6 @@
     return !!(obj && obj.test && obj.exec && (obj.ignoreCase || obj.ignoreCase === false));
   };
 
-  // Is the given value NaN -- this one is interesting. NaN != NaN, and
-  // isNaN(undefined) == true, so we make sure it's a number first.
-  _.isNaN = function(obj) {
-    return _.isNumber(obj) && isNaN(obj);
-  };
-
   // Is a given value equal to null?
   _.isNull = function(obj) {
     return obj === null;
@@ -583,7 +641,7 @@
 
   // Is a given variable undefined?
   _.isUndefined = function(obj) {
-    return typeof obj == 'undefined';
+    return obj === void 0;
   };
 
   // Utility Functions
@@ -604,11 +662,6 @@
   // Run a function **n** times.
   _.times = function (n, iterator, context) {
     for (var i = 0; i < n; i++) iterator.call(context, i);
-  };
-
-  // Break out of the middle of an iteration.
-  _.breakLoop = function() {
-    throw breaker;
   };
 
   // Add your own custom functions to the Underscore object, ensuring that
@@ -641,7 +694,8 @@
     var c  = _.templateSettings;
     var tmpl = 'var __p=[],print=function(){__p.push.apply(__p,arguments);};' +
       'with(obj||{}){__p.push(\'' +
-      str.replace(/'/g, "\\'")
+      str.replace(/\\/g, '\\\\')
+         .replace(/'/g, "\\'")
          .replace(c.interpolate, function(match, code) {
            return "'," + code.replace(/\\'/g, "'") + ",'";
          })

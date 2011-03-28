@@ -9,6 +9,8 @@
  **/
 var Bujagali = (function() {
 
+  var root = this;
+
   /* ECMAScript 5!! */
   if (!Object.create) {
     Object.create = function(prototype) {
@@ -23,6 +25,14 @@ var Bujagali = (function() {
     null;
   var pendingExec = {};
 
+  var needNewVersion = function(v1, v2) {
+    return v1 != v2;
+  }
+
+  if (root.__testing__) {
+    needNewVersion = function() { return false };
+  }
+
   /* escape regular expressions */
   var ampRe = /&/g;
   var ltRe = /</g;
@@ -34,7 +44,7 @@ var Bujagali = (function() {
   var isoRe = /([0-9]{4})(-([0-9]{2})(-([0-9]{2})(T([0-9]{2}):([0-9]{2})(:([0-9]{2})(\.([0-9]+))?)?(Z|(([\-+])([0-9]{2}):([0-9]{2})))?)?)?)?/i;
 
   /* urlize regular expression */
-  var urlMatcher = /[0-9A-z]\S+(\.com|\.org|\.net|\.edu|\.mil|\.gov|\.cc|\.me|\.cn|\.ly|\.io|\.fm|\.co|\.uk|\.ca|\.be)(\/[0-9A-z\-_\.\?=&#\/;%:+(]+[0-9A-z\/])?/gi;
+  var urlMatcher = /[0-9A-z]\S+(\.com|\.org|\.net|\.edu|\.mil|\.gov|\.cc|\.me|\.cn|\.ly|\.io|\.fm|\.co|\.uk|\.ca|\.be|\.jp|\.pe|\.kr)(\/[0-9A-z\-_\.\?=&#\/;%:+(]+[0-9A-z\/])?/gi;
 
   var newLineRe = /\n/g;
 
@@ -383,7 +393,7 @@ var Bujagali = (function() {
 
       var template = module.fxns[this.name];
       if (template) {
-        if (template.version != this.version) {
+        if (needNewVersion(template.version, this.version)) {
           log('old template cached, requesting new one');
           pendingExec[this.name] = this;
           this.load();
@@ -505,6 +515,39 @@ var Bujagali = (function() {
       }
     }
   });
+
+  if (root.Backbone) {
+    /* When backbone.js is included, we have a special View that
+     * uses bujagali, but interacts with the rest of the system in
+     * a backbone-like way
+     */
+    module.View = Backbone.View.extend({
+      initialize: function(options) {
+        this.monad = new module.Monad(options.name);
+      },
+      render: function(context) {
+        var self = this;
+        self.monad.render(context, function(data, markup) {
+          $(self.el).html(markup);
+          self.trigger('rendered', data);
+        });
+      }
+    });
+
+    module.MacroView = Backbone.View.extend({
+      initialize: function(name) {
+        this.name = name;
+      },
+      render: function(args) {
+        var self = this;
+        var renderArgs = [self.name, function(markup) {
+          $(self.el).html(markup);
+          self.trigger('rendered');
+        }, self].concat(_.toArray(args));
+        module.renderMacro.apply(self, renderArgs);
+      }
+    });
+  }
 
   return module;
 })();
