@@ -1,5 +1,5 @@
 /*jslint evil:true */
-/*globals document load fs $ log exports _ require */
+/*globals document load fs $ console exports _ require Backbone */
 
 /**
  * Bujagali
@@ -10,6 +10,9 @@
 var Bujagali = (function() {
 
   var root = this;
+
+  var SCRIPT_BASE_URL = '/';
+  var VERIFY_VERSIONS = true;
 
   /* ECMAScript 5!! */
   if (!Object.create) {
@@ -23,28 +26,59 @@ var Bujagali = (function() {
   var headEl = (typeof document != 'undefined') ?
     document.getElementsByTagName("head")[0] :
     null;
-  var pendingExec = {};
 
-  var needNewVersion = function(v1, v2) {
+  function doVersionsMatch(v1, v2) {
     return v1 != v2;
   }
 
+  var needNewVersion = doVersionsMatch;
+
   if (root.__testing__) {
-    needNewVersion = function() { return false };
+    needNewVersion = function() { return false; };
   }
 
-  /* escape regular expressions */
-  var ampRe = /&/g;
-  var ltRe = /</g;
-  var gtRe = />/g;
-  var aposRe = /'/g;
-  var quoteRe = /"/g;
+  /* escaped and unescaped version of special characters */
+  var specialCharacters = {
+    amp: {
+      escaped: '&amp;',
+      unescaped: '&'
+    },
+    lt: {
+      escaped: '&lt;',
+      unescaped: '<'
+    },
+    gt: {
+      escaped: '&gt;',
+      unescaped: '>'
+    },
+    apos: {
+      escaped: '&#39;',
+      unescaped: '\''
+    },
+    quot: {
+      escaped: '&quot;',
+      unescaped: '"'
+    },
+    hellip: {
+      escaped: '&hellip;',
+      unescaped: '…'
+    }
+  };
+
+  /* RegExps for escaped and unescaped versions of special characters */
+  var specialCharactersRe = {};
+  _.each(specialCharacters, function(value, key) {
+    specialCharactersRe[key] = {
+      escaped: RegExp(value.escaped, 'g'),
+      unescaped: RegExp(value.unescaped, 'g')
+    };
+  });
 
   /* iso regex */
   var isoRe = /([0-9]{4})(-([0-9]{2})(-([0-9]{2})(T([0-9]{2}):([0-9]{2})(:([0-9]{2})(\.([0-9]+))?)?(Z|(([\-+])([0-9]{2}):([0-9]{2})))?)?)?)?/i;
 
   /* urlize regular expression */
-  var urlMatcher = /[0-9A-z]\S+(\.com|\.org|\.net|\.edu|\.mil|\.gov|\.cc|\.me|\.cn|\.ly|\.io|\.fm|\.co|\.uk|\.ca|\.be|\.jp|\.pe|\.kr)(\/[0-9A-z\-_\.\?=&#\/;%:+(]+[0-9A-z\/])?/gi;
+  var urlMatcher = /(https?:\/\/)?([0-9A-z][0-9A-z\-\.]*)[0-9A-z](\.com\.br|\.com|\.org|\.net|\.edu|\.mil|\.gov|\.cc|\.me|\.cn|\.ly|\.io|\.fm|\.co|\.uk|\.ca|\.be|\.jp|\.pe|\.kr|\.lu|\.us)(\/?[0-9A-z\-_\.\?=&#\/;%:+(]+[0-9A-z\/])?/gi;
 
   var newLineRe = /\n/g;
 
@@ -129,8 +163,28 @@ var Bujagali = (function() {
       return Math.floor(Math.random() * 10000000);
     },
 
+    /**
+     * Bujagali.Utils.date(isoDate) -> Date
+     * - isoDate (string): An iso date string
+     *
+     * Take an iso date string and returns a JavaScript date object representing
+     * the same date and time.
+     **/
+    date: function(isoDate, ignoreTimezone) {
+      if (!isoDate) { return isoDate; }
+
+      var utc = utils.parseISODate(isoDate, ignoreTimezone);
+      if (utc === null) {
+        return null;
+      }
+      var d = new Date();
+      d.setTime(utc);
+      return d;
+    },
+
+    // we should refactor the next two fns to be more consistent
     parseISODate: function(string, dontAdjustTimezone) {
-      if (!string) { return 0; }
+      if (!string) { return null; }
 
       var d = string.match(isoRe);
       if (!d) {
@@ -156,24 +210,35 @@ var Bujagali = (function() {
       return (Number(date) + (offset * 60 * 1000));
     },
 
-    /**
-     * Bujagali.Utils.date(isoDate) -> Date
-     * - isoDate (string): An iso date string
-     *
-     * Take an iso date string and returns a JavaScript date object representing
-     * the same date and time.
-     **/
-    date: function(isoDate, ignoreTimezone) {
-      if (!isoDate) { return isoDate; }
-
-      var utc = utils.parseISODate(isoDate, ignoreTimezone);
-      if (!utc) {
-        return null;
+    toISOString: function(date) {
+      // Date.prototype.toISOString is undefined for IE < 9
+      if (_.isString(date)) {
+        date = utils.date(date);
       }
-      var d = new Date();
-      d.setTime(utc);
-      return d;
+
+      // stolen from https://gist.github.com/1044533/6f0b6ee5dd2b23277701e394c4e31f5be0c3f2b1
+      // - and then modified so it actually works
+
+      var regexStr = (
+        1e3 // Insert a leading zero as padding for months < 10
+        -~date.getUTCMonth() // Months start at 0, so increment it by one
+        *10 // Insert a trailing zero as padding for days < 10
+        +date.toUTCString().replace(/^[A-z]{3}, /, '') // Can be "1 Jan 1970 00:00:00 GMT" or "Thu, 01 Jan 1970 00:00:00 GMT" (or "Thu, 1 Jan 1970 00:00:00 UTC"!)
+        +1e3+date/1 // Append the millis, add 1000 to handle timestamps <= 999
+        // The resulting String for new Date(0) will be:
+        // "-1010 Thu, 01 Jan 1970 00:00:00 GMT1000" or
+        // "-10101 Jan 1970 00:00:00 GMT1000" (IE)
+      );
+
+      return regexStr.replace(
+        // The two digits after the leading '-1' contain the month
+        // The next two digits (at whatever location) contain the day
+        // The last three chars are the milliseconds
+        /1(..).*?(\d\d)\D+(\d+).(\S+).*(...)/,
+       '$3-$1-$2T$4.$5Z'
+      );
     },
+
 
     /**
      * Bujagali.Utils.truncate(s, length) -> string
@@ -185,11 +250,11 @@ var Bujagali = (function() {
      * original string's length is less that `length`, just return the original
      * string.
      **/
-    truncate: function(s, length) {
+    truncate: function(s, length, escape) {
       if (s.length > length) {
-        s = s.slice(0, length - 1) + "&hellip;";
+        s = s.slice(0, length - 1) + specialCharacters.hellip.unescaped;
       }
-      return s;
+      return escape ? utils.escape(s) : s;
     },
 
     /**
@@ -215,11 +280,15 @@ var Bujagali = (function() {
      * Returns the escaped string.
      **/
     escape: function(str) {
-      return str.replace(ampRe,'&amp;')
-        .replace(ltRe,'&lt;')
-        .replace(gtRe,'&gt;')
-        .replace(aposRe, '&#39;')
-        .replace(quoteRe, "&quot;");
+      if (!str || !_.isString(str)) {
+        return str;
+      }
+
+      _.each(specialCharacters, function(character, key) {
+        str = str.replace(specialCharactersRe[key].unescaped, character.escaped);
+      });
+
+      return str;
     },
 
     /**
@@ -232,11 +301,44 @@ var Bujagali = (function() {
      **/
     deEscape: function(str) {
       /* removes escaping performed by django filter 'escape' */
-      if(!str) {
+      if(!str) { return ''; }
+
+      _.each(specialCharacters, function(character, key) {
+        str = str.replace(specialCharactersRe[key].escaped, character.unescaped);
+      });
+
+      return str;
+    },
+
+    /**
+     * Bujagali.Utils.classes(options, includeClassAttribute) -> string
+     * - options (Object): An object containing className/condition key/value pairs
+     * - includeClassAttribute (Boolean): If true, include the class attribute declaration
+     *
+     * Returns a string containing a list of keys whose values evaluate to `true`.
+     * If `includeClassAttribute` is `true`, the list is wrapped with 'class=""'
+     **/
+    classes: function(options, includeClassAttribute) {
+      var begin = '';
+      var end = '';
+      var classes = [];
+
+      if (includeClassAttribute) {
+        begin = 'class="';
+        end = '"';
+      }
+
+      _.each(options, function(condition, className) {
+        if (condition) {
+          classes.push(className);
+        }
+      });
+
+      if (!classes.length) {
         return '';
       }
-      var retval = str.replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&#39;/g,'\'').replace(/&quot;/g,'"').replace(/&amp;/g,'&');
-      return retval;
+
+      return begin + classes.join(' ') + end;
     }
   };
 
@@ -256,33 +358,24 @@ var Bujagali = (function() {
   /**
    * new Bujagali.Monad(name[, context][, root])
    * - name (String): The name of the template to render
-   * - context (Object): The context that provides the data and version
-   *   of the template to render.
+   * - context (Object): The context that provides the data of the
+   *   template to render.
    * - root (String): The path to the root of the templates directory. If you
    *   are running in a browser, this is usually unnecessary.
    **/
   function Monad(name, context, root) {
     this.name = name;
-    this.markup = [];
-    this.root = root || '';
+    this.root = root || SCRIPT_BASE_URL;
     this.afterRenderCalls = {};
 
     if (context) {
       this.context = context;
-      this.version = (context.deps && context.deps[this.name]) || this.version;
     }
   }
 
   var module = {
     fxns: {}, // The actual template functions.
     helpers: helpers, // macros
-    fxnLoaded: function(name) {
-      var pending = pendingExec[name];
-      if (pending) {
-        pending.exec();
-        pendingExec[name] = undefined;
-      }
-    },
 
     /**
      * Bujagali.postProcessors -> Object
@@ -339,6 +432,9 @@ var Bujagali = (function() {
     mixin: function(obj) {
       _.extend(utils, obj);
     },
+    setBaseUrl: function(url) {
+      SCRIPT_BASE_URL = url;
+    },
     Utils: utils,
     Monad: Monad
   };
@@ -348,32 +444,33 @@ var Bujagali = (function() {
     ctor: Monad, // for subtemplates, and we overrode the proto one
 
     /**
-     * Bujagali.Monad#render(context, callback, args) -> undefined
+     * Bujagali.Monad#render(context, callback[, args][, markup]) -> undefined
      * - context (Object): The data provided to the template
-     * - callback (function): The function to be called after render is complete
+     * - callback (function): The function to be called after render is
+     *   complete
+     * - args (object): Any additional information you want to make available
+     *   to the template
+     * - markup (Array): An optional array to write the resulting markup
+     *   into. This allows you to embed templates inside other templates.
      *
      * This is the function that does the magic. It loads the template and then
      * executes it with the provided context.
      *
      * The context must conform to a particular format:
      *
-     *    {
-     *        deps: {
-     *          <template path>: <version>,
-     *          ....
-     *        }
-     *        data: {
-     *          // Object representing data used in the template. This is
-     *          // available in the template as "ctx"
-     *        }
-     *    }
+     *     {
+     *         data: {
+     *           // Object representing data used in the template. This is
+     *           // available in the template as "ctx"
+     *         }
+     *     }
      *
      * However, this should be taken care of you on the server side. Refer to
      * that documentation for more details.
      *
      * The `callback` is a function with the signature:
      *
-     *    function callback(data, markup, args);
+     *     function callback(data, markup, args);
      *
      * where `data` is the `context.data`, `markup` is the result of the template
      * rendering, and `args` is the same `args` the user passed into
@@ -382,37 +479,24 @@ var Bujagali = (function() {
      * `args` is passed back to the callback function and is never used by
      * `Bujagali.Monad` itself.
      **/
-    render: function(context, callback, args) {
+    render: function(context, callback, args, markup) {
 
       // save our state for execution
       this.context = context;
       this.callback = callback;
       this.args = args;
 
-      this.version = (context.deps && context.deps[this.name]) || this.version;
-
       var template = module.fxns[this.name];
       if (template) {
-        if (needNewVersion(template.version, this.version)) {
-          log('old template cached, requesting new one');
-          pendingExec[this.name] = this;
-          this.load();
-        }
-        else {
-          this.exec();
-        }
-      }
-      else {
-        pendingExec[this.name] = this;
-        this.load();
+        this.exec(markup);
+      } else {
+        throw new Error("Template " + this.name + " does not exist.");
       }
     },
 
     renderOnce: function(context, callback, args) {
       var template = module.fxns[this.name];
-      this.version = (context.deps && context.deps[this.name]) || this.version;
-
-      if (template && (template.version == this.version) && template.rendered) {
+      if (template && template.rendered) {
         // we've rendered this already, just call back with the current data
         callback(context.data, null, args);
       }
@@ -423,25 +507,29 @@ var Bujagali = (function() {
     },
 
     /**
-     * Bujagali.Monad#exec() -> undefined
+     * Bujagali.Monad#exec([markup]) -> undefined
+     * - markup (Array): Optional array to place the markup into.
      *
      * Executes the template with the associated data.
      *
      * You probably won't need to use this function. Look at
      * Bujagali.Monad#render instead.
      **/
-    exec: function() {
+    exec: function(markup) {
       var template = module.fxns[this.name];
+      this.markup = markup || [];
       /* this.startTime = (new Date()).valueOf(); */
       template.call(this, this.context.data, this.args);
     },
 
     done: function(post) {
       /* timing that works in IE $('body').append('<div style="color:white;">render for ' + this.name + ' took ' + (((new Date()).valueOf() - this.startTime)) + 'ms </div>'); */
-      this.callback(this.context.data, this.markup.join(''), this.args);
+      var markup = this.markup.join('');
+      this.callback(this.context.data, markup, this.args);
       if(post) { post(); }
       this.doAfterRender();
       module.fxns[this.name].rendered = true;
+      this.markup = []; // don't retain strings
     },
 
     doAfterRender: function() {
@@ -452,49 +540,6 @@ var Bujagali = (function() {
           f.apply(self, args);
         }
       });
-    },
-
-    /**
-     * Bujagali.Monad#load() -> undefined
-     *
-     * Loads the template but does not execute it.
-     *
-     * You probably won't need to use this. Look at Bujagali.Monad#render()
-     * instead.
-     **/
-    load: function() {
-      var src;
-      if (this.loading || module.fxns[this.name] && module.fxns[this.name].version == this.version) {
-        return; // already have the right version loaded
-      }
-
-      if (this.version) {
-        src = this.root + '/media/bujagali/' + this.name + '.' + this.version + '.js';
-      }
-      else {
-        throw new Error('No template version found for ' + this.name);
-      }
-
-      this.loading = true;
-
-      if (headEl) {
-        var script;
-        script = document.createElement('script');
-        script.type = 'text/javascript';
-        script.src = src;
-
-        headEl.appendChild(script);
-      }
-      else {
-        // Server side environment
-        if (typeof load != 'undefined') {
-          load(src);
-        }
-        else if (typeof require != 'undefined') {
-          var fs = require('fs');
-          eval(fs.readFileSync(src).toString());
-        }
-      }
     },
 
     /**
@@ -513,24 +558,79 @@ var Bujagali = (function() {
       else {
         this.afterRenderCalls[key] = [arg];
       }
+    },
+
+    _pending: function() {
+      var queue = pendingExec[this.name];
+      if (!queue) {
+        pendingExec[this.name] = queue = [];
+      }
+      queue.push(this);
+    },
+
+    noBlockFound: {},
+    _getBlock: function(blockProviders, blockName) {
+      var self = this;
+      var provider = _.find(blockProviders, function(provider) {
+        return provider(blockName) != self.noBlockFound;
+      });
+      if (provider) {
+        return provider(blockName);
+      }
     }
   });
 
   if (root.Backbone) {
-    /* When backbone.js is included, we have a special View that
+    /**
+     * class Bujagali.View
+     *
+     * When backbone.js is included, we have a special View that
      * uses bujagali, but interacts with the rest of the system in
      * a backbone-like way
-     */
+     *
+     * You should refer to [Backbone.View][1] for additional information.
+     *
+     * [1]: http://documentcloud.github.com/backbone/#View
+     **/
     module.View = Backbone.View.extend({
       initialize: function(options) {
-        this.monad = new module.Monad(options.name);
+        options = options || {};
+        var template = options.template || this.template;
+
+        this.children = [];
+        if (template) {
+          this.monad = new module.Monad(template);
+          this.monad.view = this;
+        }
       },
-      render: function(context) {
+
+      /**
+       * Bujagali.View.render(context, callback) -> undefined
+       * - context (Object): Dependencies and data for the template
+       * - callback (Function): Function to call when render is complete
+       *
+       * This renders the template for the view with the `context` object
+       * provided. `context` should be in the same format as is required
+       * for `Bujagali.render`.
+       *
+       * `callback` will be called when rendering is finished. Arguments
+       * to the callback are the `context.data` property or `null` if a
+       * template is not provided.
+       *
+       **/
+      render: function(context, callback) {
         var self = this;
+        // Check if we have a template to render, else just return ourselves
+        if (!self.monad) {
+          $(self.el).empty();
+          callback();
+          return self;
+        }
         self.monad.render(context, function(data, markup) {
           $(self.el).html(markup);
-          self.trigger('rendered', data);
-        });
+          callback(data);
+        }, this.options);
+        return self;
       }
     });
 
@@ -538,12 +638,19 @@ var Bujagali = (function() {
       initialize: function(name) {
         this.name = name;
       },
-      render: function(args) {
+      render: function(callback) {
         var self = this;
         var renderArgs = [self.name, function(markup) {
+          $(self.el).children().remove();
           $(self.el).html(markup);
-          self.trigger('rendered');
-        }, self].concat(_.toArray(args));
+          self.trigger('render');
+          if (self.onRendered) {
+            self.onRendered();
+          }
+          if (callback && _.isFunction(callback)) {
+            callback();
+          }
+        }, self].concat(_.toArray(arguments));
         module.renderMacro.apply(self, renderArgs);
       }
     });
