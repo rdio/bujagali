@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+  <script type="text/javascript" src="lib/jquery-1.8.3.js"></script>
+  <script type="text/javascript" src="lib/underscore-1.5.2.js"></script>
+  <script type="text/javascript" src="../bujagali.js"></script>
+  <script type="text/javascript" src="../bujagali_parser.js"></script>
+  <script type="text/javascript" src="jasmine.js"></script>
+  <script type="text/javascript" src="jasmine-html.js"></script>
+  <script type="text/javascript" src="specs/bujagali_test.js"></script>
+  <script type="text/javascript" src="specs/bujagali_parser_test.js"></script>
+  <link rel="stylesheet" type="text/css" href="jasmine.css"></link>
+  <script type="text/javascript">
+    $(function() {
+      var reporter = new jasmine.HtmlReporter();
+      jasmine.getEnv().addReporter(reporter);
+      jasmine.getEnv().specFilter = reporter.specFilter;
+      jasmine.getEnv().execute();
+    });
+  </script>
+</head>
+<body>
+</body>
+</html>
