@@ -1,0 +1,31 @@
+#!/usr/bin/env node
+
+var fs = require('fs');
+var Parser = require('../bujagali_parser').Parser;
+
+function parseStream(readStream, writeStream) {
+  var template = '';
+  readStream.on('data', function(data) {
+    template += data;
+  });
+  readStream.on('end', function() {
+    var parser = new Parser();
+    var compiledTemplate = parser.parse(template);
+    writeStream.write(compiledTemplate);
+  });
+}
+
+if (process.argv.length > 2) {
+  parseStream(fs.createReadStream(process.argv[2], {
+    flags: 'r',
+    encoding: 'utf8'
+  }), process.stdout);
+} else {
+  var stdin = process.stdin; 
+  if (!stdin) {
+    stdin = process.openStdin();
+  }
+  stdin.setEncoding('utf8');
+  stdin.resume();
+  parseStream(stdin, process.stdout);
+}
