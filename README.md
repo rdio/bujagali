@@ -36,7 +36,7 @@ Writing Templates
 Every template is provided with a context variable, called `ctx`, that contains
 the object the template was rendered with.
 
-###Special Tags
+### Special Tags
 
 There are two special tags that must come at the top of your templates. These
 are used to reuse code found in other templates, and examples of their use is
@@ -54,7 +54,7 @@ occur above all other markup, but *after `#import` tags*. This is used to provid
 template inheritance, where the template being extended will later call into
 the current template (see below for an example).
 
-###Regular Tags
+### Regular Tags
 
 #### `{{ <data> }}` 
 Output whatever is returned, usually a variable or the result of some operation.
@@ -146,7 +146,7 @@ Then in some other template:
 Everything between these tags will be ignored and will not end up in the
 compiled template.
 
-###Advanced Concepts
+### Advanced Concepts
 
 #### `self`
 `self` refers to the current instance of the template being rendered. You almost
@@ -182,7 +182,7 @@ This example is a little contrived as you could also do
 
 But it does come in useful sometimes, I swear.
 
-###Provided functions
+### Provided functions
 See the [API docs](http://rdio.github.com/bujagali/js-api) for what functions
 are available to you from your templates and how to extend that set.
 
